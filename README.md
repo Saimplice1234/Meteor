@@ -1,6 +1,6 @@
 # Meteor
 
-A new Flutter application.
+A minimalist weather app made with flutter
 
 ## Getting Started
 
