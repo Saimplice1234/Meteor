@@ -1,4 +1,4 @@
-# meteor
+# Meteor
 
 A new Flutter application.
 
