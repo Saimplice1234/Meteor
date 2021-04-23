@@ -34,6 +34,8 @@ dependencies:
   animate_do: ^2.0.0
   google_fonts: ^2.0.0
   rxdart: ^0.26.0
+  auto_size_text: ^2.1.0
+  connectivity: ^3.0.3
 
 
 dev_dependencies:

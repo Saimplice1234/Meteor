@@ -1,4 +1,6 @@
 import 'package:animate_do/animate_do.dart';
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:connectivity/connectivity.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -32,15 +34,13 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> menu=["Today","Tomorrow","7days"];
   int todayIndex=0;
   final player = AudioPlayer();
+  bool isCalled=false;
+
   @override
   void initState(){
-    GetUserLocation();
-    //_init();
+    //GetUserLocation();
+
     super.initState();
-  }
-  void _init() async{
-    var duration = await player.setAsset('assets/zen.mp3');
-    player.play();
   }
   // ignore: non_constant_identifier_names
   Future GetUserLocation() async{
@@ -50,7 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         ip=response.data["ip"];
       });
-      GetLocality(ip);
+     await GetLocality(ip);
 
     }catch(e){
       print(e);
@@ -60,10 +60,14 @@ class _MyHomePageState extends State<MyHomePage> {
   Future GetLocality(dynamic ip) async{
     try{
       var response = await Dio().get("https://api.ipgeolocation.io/ipgeo?apiKey=0e1a3c5babd0431d8bafd3a64b12a602&ip=$ip");
-      setState(() {
+      setState((){
         Repository.Locality=response.data["country_capital"];
       });
+      Repository.blocLocality.addLocality(response.data["country_capital"].toString());
       Repository.blocWeather.weatherAPi(Repository.Locality);
+      setState(() {
+        isCalled=true;
+      });
     }catch(e){
       print(e);
     }
@@ -75,245 +79,279 @@ class _MyHomePageState extends State<MyHomePage> {
     extendBodyBehindAppBar:true,
       resizeToAvoidBottomInset:false,
       body:Container(
-        width: MediaQuery
-            .of(context)
-            .size
-            .width,
-        decoration: BoxDecoration(
-          color: Color(0xff262930),
-        ),
-        child: Column(
-          children: [
-            SizedBox(height: 100),
-            Container(
-              margin: EdgeInsets.only(left: 23, right: 23),
-              padding: EdgeInsets.only(left: 5),
-              decoration: BoxDecoration(
-                color: Color(0xff82828A).withOpacity(0.1),
-                borderRadius: BorderRadius.all(Radius.circular(5)),
-              ),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(top:8.0),
-                  child: TextField(
-                    onChanged: (str) {
-                      Repository.blocWeather.weatherAPi(str);
-                    },
-                    cursorColor: Colors.white,
-                    style: TextStyle(
-                      color: Color(0xffFEFFFD),
-                    ),
-                    decoration: InputDecoration(
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.only(
-                            right: 8.0, left: 12,bottom:6),
-                        child:Icon(
-                            Icons.location_pin, color: Colors.white,
-                            size: 23),
-                      ),
-                      hintText: "Type the location name",
-                      hintStyle:GoogleFonts.poppins(
-                        color: Color(0xffFEFFFD).withOpacity(0.2),
-                        fontSize:12
-                      ),
-                      border: InputBorder.none,
-
-                    ),
-                  ),
+        child:StreamBuilder(
+          stream:Connectivity().onConnectivityChanged,
+          // ignore: missing_return
+          builder: (BuildContext context, AsyncSnapshot<dynamic>connect) {
+            print(connect.data);
+            if(connect.hasData && connect.data==ConnectivityResult.none){
+              return Container(
+                width: MediaQuery
+                    .of(context)
+                    .size
+                    .width,
+                decoration: BoxDecoration(
+                  color: Color(0xff262930),
                 ),
-              ),
-            ),
-            SizedBox(height: 34),
-            StreamBuilder(
-              stream:Repository.blocWeather.stream,
-              builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-                if(snapshot.hasData){
-                  print(snapshot.data["success"]);
-                  if(snapshot.data["success"] == null) {
-                    return Container(
-                      child: Column(
-                        children: [
-                          ElasticInDown(
-                            child: GestureDetector(
-                                child: BoxedIcon(
-                                  snapshot.data["current"]["is_day"] ==
-                                      "yes"
-                                      ? WeatherIcons.day_sunny
-                                      : WeatherIcons
-                                      .night_clear, color: Colors.white,
-                                  size: 43,)),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              BounceInDown(
-                                child: Text(
-                                    snapshot.data["current"]["temperature"]
-                                        .toInt()
-                                        .toString(), style:GoogleFonts.poppins(
-                                    color: Color(0xffFEFFFD),
-                                    fontSize: 84,
-                                    fontWeight: FontWeight.bold
-                                )),
-                              ),
-                              Container(
-                                child:
-                                Row(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                          bottom: 18.0),
-                                      child: Container(width: 7, height: 7,
-                                        decoration: BoxDecoration(
-                                            color: Colors.transparent,
-                                            borderRadius: BorderRadius.all(
-                                                Radius.circular(100)),
-                                            border: Border.all(
-                                                width: 2,
-                                                color: Color(0xff787B84))
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 2),
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                          bottom: 22.0),
-                                      child: Text("C", style:GoogleFonts.poppins(
-                                          color: Color(0xff787B84),
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold
-                                      )),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            ],
-                          ),
-                          SizedBox(height: 6),
-                          Text(snapshot.data["request"]["query"],
-                              style:GoogleFonts.poppins(
-                                color: Color(0xffFEFFFD),fontSize:12,fontWeight:FontWeight.w500
-                              )),
-                          SizedBox(height: 7),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text("Feel likes ${snapshot
-                                  .data["current"]["feelslike"]}",
-                                  style:GoogleFonts.poppins(
-                                    color: Color(0xffFEFFFD),fontSize:12
-                                  )),
-                              SizedBox(width: 6),
-                              Text("Observation time ${snapshot
-                                  .data["current"]["observation_time"]}",
-                                  style: GoogleFonts.poppins(
-                                    color: Color(0xffFEFFFD),fontWeight:FontWeight.bold
-                                  )),
-                            ],
-                          ),
-                          SizedBox(height: 36),
-                          SlideInUp(
-                            child: Container(
-                              height: 140,
-                              child: ListView.builder(
-                                physics: const BouncingScrollPhysics(),
-                                itemCount: 7,
-                                scrollDirection: Axis.horizontal,
-                                itemBuilder: (BuildContext context, int index) {
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        todayIndex = index;
-                                      });
-                                    },
-                                    child: AnimatedContainer(
-                                      duration: Duration(milliseconds: 300),
-                                      margin: EdgeInsets.only(right: 12,
-                                          left: 12,
-                                          top: todayIndex == index ? 0 : 16),
-                                      decoration: BoxDecoration(
-                                        color: todayIndex == index ? Colors
-                                            .deepOrangeAccent : Color(
-                                            0xff3A3D42),
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(5)),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Color(0xff1C1D22)
-                                                .withOpacity(0.2),
-                                            //color of shadow
-                                            spreadRadius: 5,
-                                            //spread radius
-                                            blurRadius: 7,
-                                            // blur radius
-                                            offset: Offset(
-                                                0,
-                                                2), // changes position of shadow
-                                          ),
-                                        ],
-                                      ),
-                                      width: 80,
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment
-                                            .spaceEvenly,
-                                        children: [
-                                          Text(getHeader(index),
-                                              style:GoogleFonts.poppins(
-                                                  color: Color(0xffFEFFFD),
-                                                  fontSize:10,
-                                                  fontWeight: FontWeight.w500
-                                              )),
-                                          Transform.scale(
-                                              scale: todayIndex == index
-                                                  ? 1.3
-                                                  : 1,
-                                              child: getIcons(index)),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment
-                                                .center,
-                                            children: [
-                                              SizedBox(width: 6),
-                                              Text(getContent(index, snapshot),
-                                                  style:GoogleFonts.poppins(
-                                                      color: Color(0xffFEFFFD),
-                                                      fontSize: 23,
-                                                      fontWeight: FontWeight
-                                                          .bold
-                                                  )),
-                                              showDegree(index),
-                                            ],
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },),
-                            ),
-                          )
-
-                        ],
+                child:Center(
+                  child:Column(
+                    mainAxisAlignment:MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.signal_cellular_connected_no_internet_4_bar_outlined,color:Colors.white,size:35,),
+                      SizedBox(height:5),
+                      Text("Please check internet connection",style:GoogleFonts.poppins(color:Colors.white,)),
+                    ],
+                  )
+                ),
+              );
+            }else if(connect.hasData && connect.data==ConnectivityResult.mobile || connect.data==ConnectivityResult.wifi){
+              if(isCalled == false){GetUserLocation();}
+              return Container(
+                width: MediaQuery
+                    .of(context)
+                    .size
+                    .width,
+                decoration: BoxDecoration(
+                  color: Color(0xff262930),
+                ),
+                child:Column(
+                  children: [
+                    SizedBox(height: 100),
+                    Container(
+                      margin: EdgeInsets.only(left: 23, right: 23),
+                      padding: EdgeInsets.only(left: 5),
+                      decoration: BoxDecoration(
+                        color: Color(0xff82828A).withOpacity(0.1),
+                        borderRadius: BorderRadius.all(Radius.circular(5)),
                       ),
-                    );
-                  }else{
-                    return Padding(
-                      padding: EdgeInsets.only(top:MediaQuery.of(context).size.height/2/2-30),
-                      child: Center(child: Text("Please enter correct location",style:GoogleFonts.poppins(color:Colors.white.withOpacity(0.2),fontWeight: FontWeight.bold))),
-                    );
-                  }
-                }else{
-                  return Container(
-                    padding:EdgeInsets.only(top:MediaQuery.of(context).size.height/2/2),
-                    child:Center(
-                        child:SpinKitFadingFour(
-                            color:Colors.white,size:12
-                        )
-                    ),
-                  );
-                }
-              },
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top:8.0),
+                          child: TextField(
+                            onChanged: (str) {
+                              Repository.blocWeather.weatherAPi(str);
+                            },
+                            cursorColor: Colors.white,
+                            style: TextStyle(
+                              color: Color(0xffFEFFFD),
+                            ),
+                            decoration: InputDecoration(
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.only(
+                                    right: 8.0, left: 12,bottom:6),
+                                child:Icon(
+                                    Icons.location_pin, color: Colors.white,
+                                    size: 23),
+                              ),
+                              hintText: "Type the location name",
+                              hintStyle:GoogleFonts.poppins(
+                                  color: Color(0xffFEFFFD).withOpacity(0.2),
+                                  fontSize:12
+                              ),
+                              border: InputBorder.none,
 
-            ),
-          ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 34),
+                    StreamBuilder(
+                      stream:Repository.blocWeather.stream,
+                      builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+                        if(snapshot.hasData){
+                          print(snapshot.data["success"]);
+                          if(snapshot.data["success"] == null) {
+                            return Container(
+                              child: Column(
+                                children: [
+                                  ElasticInDown(
+                                    child: GestureDetector(
+                                        child: BoxedIcon(
+                                          snapshot.data["current"]["is_day"] ==
+                                              "yes"
+                                              ? WeatherIcons.day_sunny
+                                              : WeatherIcons
+                                              .night_clear, color: Colors.white,
+                                          size: 43,)),
+                                  ),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      BounceInDown(
+                                        child: Text(
+                                            snapshot.data["current"]["temperature"]
+                                                .toInt()
+                                                .toString(), style:GoogleFonts.poppins(
+                                            color: Color(0xffFEFFFD),
+                                            fontSize: 84,
+                                            fontWeight: FontWeight.bold
+                                        )),
+                                      ),
+                                      Container(
+                                        child:
+                                        Row(
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 18.0),
+                                              child: Container(width: 7, height: 7,
+                                                decoration: BoxDecoration(
+                                                    color: Colors.transparent,
+                                                    borderRadius: BorderRadius.all(
+                                                        Radius.circular(100)),
+                                                    border: Border.all(
+                                                        width: 2,
+                                                        color: Color(0xff787B84))
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(width: 2),
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 22.0),
+                                              child: Text("C", style:GoogleFonts.poppins(
+                                                  color: Color(0xff787B84),
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold
+                                              )),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                  SizedBox(height: 6),
+                                  Text(snapshot.data["request"]["query"],
+                                      style:GoogleFonts.poppins(
+                                          color: Color(0xffFEFFFD),fontSize:12,fontWeight:FontWeight.w500
+                                      )),
+                                  SizedBox(height: 7),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text("Feel likes ${snapshot
+                                          .data["current"]["feelslike"]}",
+                                          style:GoogleFonts.poppins(
+                                              color: Color(0xffFEFFFD),fontSize:12
+                                          )),
+                                      SizedBox(width: 6),
+                                      Text("Observation time ${snapshot
+                                          .data["current"]["observation_time"]}",
+                                          style: GoogleFonts.poppins(
+                                              color: Color(0xffFEFFFD),fontWeight:FontWeight.bold
+                                          )),
+                                    ],
+                                  ),
+                                  SizedBox(height: 36),
+                                  SlideInUp(
+                                    child: Container(
+                                      height: 140,
+                                      child: ListView.builder(
+                                        physics: const BouncingScrollPhysics(),
+                                        itemCount: 7,
+                                        scrollDirection: Axis.horizontal,
+                                        itemBuilder: (BuildContext context, int index) {
+                                          return GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                todayIndex = index;
+                                              });
+                                            },
+                                            child: AnimatedContainer(
+                                              duration: Duration(milliseconds: 300),
+                                              margin: EdgeInsets.only(right: 12,
+                                                  left: 12,
+                                                  top: todayIndex == index ? 0 : 16),
+                                              decoration: BoxDecoration(
+                                                color: todayIndex == index ? Colors
+                                                    .deepOrangeAccent : Color(
+                                                    0xff3A3D42),
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(5)),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Color(0xff1C1D22)
+                                                        .withOpacity(0.2),
+                                                    //color of shadow
+                                                    spreadRadius: 5,
+                                                    //spread radius
+                                                    blurRadius: 7,
+                                                    // blur radius
+                                                    offset: Offset(
+                                                        0,
+                                                        2), // changes position of shadow
+                                                  ),
+                                                ],
+                                              ),
+                                              width: 80,
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment
+                                                    .spaceEvenly,
+                                                children: [
+                                                  Text(getHeader(index),
+                                                      style:GoogleFonts.poppins(
+                                                          color: Color(0xffFEFFFD),
+                                                          fontSize:10,
+                                                          fontWeight: FontWeight.w500
+                                                      )),
+                                                  Transform.scale(
+                                                      scale: todayIndex == index
+                                                          ? 1.3
+                                                          : 1,
+                                                      child: getIcons(index)),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment
+                                                        .center,
+                                                    children: [
+                                                      SizedBox(width: 6),
+                                                      Text(getContent(index, snapshot),
+                                                          style:GoogleFonts.poppins(
+                                                              color: Color(0xffFEFFFD),
+                                                              fontSize: 23,
+                                                              fontWeight: FontWeight
+                                                                  .bold
+                                                          )),
+                                                      showDegree(index),
+                                                    ],
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },),
+                                    ),
+                                  )
+
+                                ],
+                              ),
+                            );
+                          }else{
+                            return Padding(
+                              padding: EdgeInsets.only(top:MediaQuery.of(context).size.height/2/2-30),
+                              child: Center(child: Text("Please enter correct location",style:GoogleFonts.poppins(color:Colors.white.withOpacity(0.2),fontWeight: FontWeight.bold))),
+                            );
+                          }
+                        }else{
+                          return Container(
+                            padding:EdgeInsets.only(top:MediaQuery.of(context).size.height/2/2),
+                            child:Center(
+                                child:SpinKitFadingFour(
+                                    color:Colors.white,size:12
+                                )
+                            ),
+                          );
+                        }
+                      },
+
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Container(width:0,height:0);
+        },
+
         ),
       ),
       appBar:PreferredSize(
@@ -326,23 +364,49 @@ class _MyHomePageState extends State<MyHomePage> {
                 //Icon(Icons.menu,color:Color(0xff7B7C81)),
                 SizedBox(width:10,),
                 Text("Meteor",style:GoogleFonts.poppins(
-                  color:Color(0xff8F929A),fontWeight:FontWeight.bold,fontSize:12,letterSpacing:1
+                  color:Color(0xff8F929A),fontWeight:FontWeight.bold,fontSize:19,letterSpacing:1
                 )),
-                SizedBox(width:MediaQuery.of(context).size.width-200,),
-                GestureDetector(
-                  onTap:(){
-                    Repository.blocWeather.weatherAPi(Repository.Locality);
-                  },
-                  child:Row(
-                    children: [
-                      Icon(Icons.map_outlined,color:Colors.orange,),
-                      SizedBox(width:1,),
-                      Text(Repository.Locality.toString(),style:GoogleFonts.poppins(
-                          color:Color(0xff8F929A)
-                      )),
-                    ],
-                  )
-                )
+                SizedBox(width:MediaQuery.of(context).size.width-230,),
+                // ignore: missing_return
+                StreamBuilder(
+                  stream:Connectivity().onConnectivityChanged,
+                  builder: (BuildContext context, AsyncSnapshot<dynamic>connectSnap) {
+                    if(connectSnap.hasData && connectSnap.data==ConnectivityResult.none){
+                       return Container(width:0,height:0);
+                    }else if(connectSnap.hasData && connectSnap.data==ConnectivityResult.mobile || connectSnap.data==ConnectivityResult.wifi){
+                      return StreamBuilder(
+                          stream:Repository.blocLocality.stream,
+                          builder: (context, snapshot) {
+                            if(snapshot.hasData){
+                              return GestureDetector(
+                                  onTap:(){
+                                    Repository.blocWeather.weatherAPi(Repository.Locality);
+                                  },
+                                  child:FadeIn(
+                                    delay:Duration(milliseconds:700),
+                                    child:Row(
+                                      children: [
+                                        SizedBox(width:9,),
+                                        Icon(Icons.map_outlined,color:Colors.orange,),
+                                        SizedBox(width:1,),
+                                        Container(
+                                          width:90,
+                                          child:AutoSizeText(snapshot.data.toString(),maxLines:1,overflow:TextOverflow.ellipsis,style:GoogleFonts.poppins(
+                                              color:Color(0xff8F929A)
+                                          )),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                              );
+                            }else{
+                              return Text("");
+                            }
+                          }
+                      );
+                    }
+                    return Container(width:0,height:0);
+                },),
               ],
             ),
           ),
