@@ -15,6 +15,7 @@ For help getting started with Flutter, view our
 [online documentation](https://flutter.dev/docs), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 # Meteor viewing
-![Frame 1 (1)](https://user-images.githubusercontent.com/69945589/115771853-49ca0c00-a363-11eb-8c36-6c7b5b7f153f.jpg)
+![Frame 1 (2)](https://user-images.githubusercontent.com/69945589/115912884-bfe27780-a424-11eb-8389-335038a9ae99.jpg)
+
 
 
